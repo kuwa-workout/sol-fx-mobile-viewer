@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#091323">
+  <meta name="description" content="SOL FX LABの検証済みUSD/JPY観測ログをスマートフォンから安全に参照する読み取り専用ビューア。">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src https://api.github.com; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SOL FX LAB">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+  <title>SOL FX LAB | Mobile v2.0</title>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand"><div class="brand-mark">S<span>◇</span></div><div><h1>SOL FX LAB</h1><p>MOBILE VIEWER <span class="vnum">v2.0</span></p></div></div>
+      <span class="readonly"><i></i>閲覧専用</span>
+    </header>
+
+    <main>
+      <section class="headline" aria-label="現在のクラウド監視状態">
+        <div class="headline-top"><span class="eyebrow">CLOUD / USD·JPY / 1H</span><span id="connectionChip" class="chip offline">未接続</span></div>
+        <div class="headline-main"><div><p class="muted">最新の検証済み判定</p><p id="heroSignal" class="hero-signal">—</p></div><div class="hero-meta"><p class="muted">対象の1時間足（JST）</p><strong id="heroCandle">—</strong><p id="heroClose" class="submeta">終値 —</p></div></div>
+        <div id="freshness" role="status" aria-live="polite" class="freshness empty"><span id="freshnessDot" class="dot"></span><div><strong id="freshnessTitle">データ未読込</strong><p id="freshnessText">GitHubへ接続するか、検証済みJSONLを読み込んでください。</p></div></div>
+        <div class="headline-footer"><span>📌 観測結果は売買指示ではありません</span><span id="alertEligibility">速報適格性：未判定</span></div>
+      </section>
+
+      <div class="section-title"><h2>監視サマリー</h2><span>VERIFIED DATA</span></div>
+      <section class="metric-grid" aria-label="監視サマリー">
+        <article class="metric"><span>最終観測（JST）</span><strong id="lastObserved">—</strong><small>クラウド観測時刻</small></article>
+        <article class="metric"><span>最終実行</span><strong id="lastStatus">—</strong><small id="lastRunTime">実行記録なし</small></article>
+        <article class="metric"><span>検証済み観測</span><strong id="obsCount">—</strong><small id="dupCount">重複 —</small></article>
+        <article class="metric"><span>取得遅延</span><strong id="barDelay">—</strong><small id="delayCaption">確定から観測まで</small></article>
+      </section>
+
+      <section class="tech-card" aria-label="テクニカル指標">
+        <div class="card-head"><h2>テクニカル指標</h2><span id="techQuality" class="pill">—</span></div>
+        <div class="tech-grid"><div><label>EMA 20</label><strong id="ema20">—</strong></div><div><label>EMA 50</label><strong id="ema50">—</strong></div><div><label>RSI 14</label><strong id="rsi14">—</strong></div><div><label>ATR 14</label><strong id="atr14">—</strong></div></div>
+        <div class="indicator-line"><span>トレンド強度（EMA差÷ATR）</span><strong id="strength">—</strong></div>
+        <div class="indicator-line"><span>フィルター 0.25</span><strong id="filter">—</strong></div>
+        <div class="trade-refs" id="tradeRefs">参考 ENTRY — / SL — / TP —</div>
+      </section>
+
+      <section class="settings-card" aria-label="クラウドとの接続">
+        <div class="card-head"><h2>クラウドのデータ取得</h2><span class="pill safe">🔒 読込のみ</span></div>
+        <p class="settings-lead">データは非公開GitHubリポジトリから取得します。トークンは<strong>この画面を開いている間のメモリ内のみ</strong>で扱い、端末・サーバー・GitHub Pagesへ保存しません。</p>
+        <details id="connectionDetails"><summary>GitHubへ接続する <span>開く</span></summary>
+          <div class="settings-body">
+            <div class="repo-row"><div><label for="repoOwner">オーナー</label><input id="repoOwner" autocapitalize="off" spellcheck="false" autocomplete="off" value="kuwa-workout" maxlength="80"></div><div><label for="repoName">リポジトリ</label><input id="repoName" autocapitalize="off" spellcheck="false" autocomplete="off" value="SOL-FX-LAB" maxlength="100"></div></div>
+            <label for="githubToken">Fine-grained PAT（Contents: Read-only）</label>
+            <input type="password" id="githubToken" placeholder="github_pat_…" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
+            <div class="button-row"><button id="connectBtn" class="primary" type="button">🔄 接続して読込</button><button id="refreshBtn" type="button" disabled>再取得</button><button id="disconnectBtn" type="button" disabled>切断</button></div>
+            <label class="checkline"><input type="checkbox" id="autoRefresh"> <span>画面表示中だけ5分ごとに更新（任意）</span></label>
+            <p class="micro">認証後は入力欄を空にします。画面を閉じるとトークンを破棄します。認証エラー時は再入力が必要です。</p>
+          </div>
+        </details>
+        <details id="importDetails"><summary>JSONLを手動取込 <span>開く</span></summary><div class="settings-body">
+          <p class="micro">GitHubの <code>data/observations_verified.jsonl</code> と <code>data/runs_verified.jsonl</code> を保存して選択。トークン不要。両方揃うと検証・表示します。</p>
+          <label class="file-label">📁 観測履歴を選択<input type="file" id="obsFile" accept=".jsonl,.txt,application/json,text/plain"></label>
+          <label class="file-label">📁 実行履歴を選択<input type="file" id="runsFile" accept=".jsonl,.txt,application/json,text/plain"></label>
+          <p id="manualState" class="micro">ファイル未選択</p>
+        </div></details>
+        <div class="connection-status" role="status" aria-live="polite" id="message">接続していません。表示用サンプル値は使用していません。</div>
+        <p id="loadedAt" class="last-load">最終読込 —</p>
+      </section>
+
+      <section class="history-card" aria-label="確認履歴">
+        <div class="card-head"><h2>クラウド履歴</h2><span class="pill">50件 / 30件</span></div>
+        <div class="tabs" role="tablist" aria-label="履歴の切替"><button id="tabObs" role="tab" aria-selected="true" aria-controls="panelObs" class="selected" type="button">判定履歴</button><button id="tabRuns" role="tab" aria-selected="false" aria-controls="panelRuns" type="button">実行履歴</button></div>
+        <div id="panelObs" class="history-list" role="tabpanel" aria-labelledby="tabObs"><div class="empty-history">観測履歴はまだありません</div></div>
+        <div id="panelRuns" class="history-list" role="tabpanel" aria-labelledby="tabRuns" hidden><div class="empty-history">実行履歴はまだありません</div></div>
+      </section>
+      <p class="legal">SOL FX LAB v2.0 · 観測専用 ／ BUY・SELLは研究用の過去判定です。実注文・仮想注文・プッシュ通知・自動売買は一切実装していません。市場時間は参考NY取引週であり、祝日・提供元の営業時間は保証されません。</p>
+    </main>
+    <footer>Designed for small screens · USD/JPY Research Lab</footer>
+  </div>
+</body>
+</html>

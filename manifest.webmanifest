@@ -1,0 +1,15 @@
+{
+  "name": "SOL FX LAB — クラウド観測ビュー",
+  "short_name": "SOL FX LAB",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#070f1d",
+  "theme_color": "#091323",
+  "description": "非公開GitHubのUSD/JPY確定足監視結果を閲覧する研究用アプリ。注文・通知は実装しない。",
+  "icons": [
+    {"src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}
