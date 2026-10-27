@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#091323">
   <meta name="description" content="SOL FX LABの検証済みUSD/JPY観測ログをスマートフォンから安全に参照する読み取り専用ビューア。">
   <meta name="referrer" content="no-referrer">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src https://api.github.com; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src https://api.github.com 'self'; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SOL FX LAB">
@@ -15,13 +15,13 @@
   <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
   <link rel="stylesheet" href="./styles.css">
-  <title>SOL FX LAB | Mobile v2.0</title>
+  <title>SOL FX LAB | Mobile v2.0.1</title>
   <script defer src="./app.js"></script>
 </head>
 <body>
   <div class="shell">
     <header class="topbar">
-      <div class="brand"><div class="brand-mark">S<span>◇</span></div><div><h1>SOL FX LAB</h1><p>MOBILE VIEWER <span class="vnum">v2.0</span></p></div></div>
+      <div class="brand"><div class="brand-mark">S<span>◇</span></div><div><h1>SOL FX LAB</h1><p>MOBILE VIEWER <span class="vnum">v2.0.1</span></p></div></div>
       <span class="readonly"><i></i>閲覧専用</span>
     </header>
 
@@ -52,6 +52,14 @@
       <section class="settings-card" aria-label="クラウドとの接続">
         <div class="card-head"><h2>クラウドのデータ取得</h2><span class="pill safe">🔒 読込のみ</span></div>
         <p class="settings-lead">データは非公開GitHubリポジトリから取得します。トークンは<strong>この画面を開いている間のメモリ内のみ</strong>で扱い、端末・サーバー・GitHub Pagesへ保存しません。</p>
+        <details id="encryptedDetails"><summary>🔐 暗号化クラウド自動同期 <span>開く</span></summary><div class="settings-body">
+          <p class="micro">公開リポジトリには暗号化されたデータのみを置きます。復号用パスフレーズはこの画面のメモリ内だけで使います。GitHub PATは不要です。</p>
+          <label for="syncPassphrase">復号パスフレーズ（32文字以上を推奨）</label>
+          <input type="password" id="syncPassphrase" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="復号パスフレーズ" data-lpignore="true">
+          <div class="button-row"><button id="encryptedConnectBtn" class="primary" type="button">🔄 暗号化データを取得</button><button id="encryptedDisconnectBtn" type="button">切断・キー破棄</button></div>
+          <label class="checkline"><input type="checkbox" id="encryptedAutoRefresh" checked> <span>表示中に5分ごと同期</span></label>
+          <p class="micro">ページを閉じるとキーを破棄します。iPhoneの画面消灯中は同期しません。復号に失敗した場合は前回表示を保持し、エラーを表示します。</p>
+        </div></details>
         <details id="connectionDetails"><summary>GitHubへ接続する <span>開く</span></summary>
           <div class="settings-body">
             <div class="repo-row"><div><label for="repoOwner">オーナー</label><input id="repoOwner" autocapitalize="off" spellcheck="false" autocomplete="off" value="kuwa-workout" maxlength="80"></div><div><label for="repoName">リポジトリ</label><input id="repoName" autocapitalize="off" spellcheck="false" autocomplete="off" value="SOL-FX-LAB" maxlength="100"></div></div>
@@ -78,7 +86,7 @@
         <div id="panelObs" class="history-list" role="tabpanel" aria-labelledby="tabObs"><div class="empty-history">観測履歴はまだありません</div></div>
         <div id="panelRuns" class="history-list" role="tabpanel" aria-labelledby="tabRuns" hidden><div class="empty-history">実行履歴はまだありません</div></div>
       </section>
-      <p class="legal">SOL FX LAB v2.0 · 観測専用 ／ BUY・SELLは研究用の過去判定です。実注文・仮想注文・プッシュ通知・自動売買は一切実装していません。市場時間は参考NY取引週であり、祝日・提供元の営業時間は保証されません。</p>
+      <p class="legal">SOL FX LAB v2.0.1 · 観測専用 ／ BUY・SELLは研究用の過去判定です。実注文・仮想注文・プッシュ通知・自動売買は一切実装していません。市場時間は参考NY取引週であり、祝日・提供元の営業時間は保証されません。</p>
     </main>
     <footer>Designed for small screens · USD/JPY Research Lab</footer>
   </div>

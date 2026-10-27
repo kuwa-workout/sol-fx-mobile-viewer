@@ -126,7 +126,7 @@
   }
   function render(){
     const latest=session.obs?.[0],run=session.runs?.[0];
-    chip(session.token?'GitHub接続中':session.obs?(session.source==='github'?'前回取得（切断）':'手動データ'):'未接続',session.token?'ok':session.obs?'warn':'offline');
+    chip(session.encryptedPassphrase?'暗号化同期中':session.token?'GitHub接続中':session.obs?(session.source==='github'?'前回取得（切断）':'手動データ'):'未接続',session.token?'ok':session.obs?'warn':'offline');
     const hero=$('heroSignal');hero.textContent=latest?.signal??'—';hero.className='hero-signal '+(latest?.signal.toLowerCase()??'');
     txt('heroCandle',latest?.candle_start_jst??'—');txt('heroClose',latest?'終値 '+clip(Number(latest.close))+' 円':'終値 —');
     txt('lastObserved',latest?jstTime(parseJst(latest.observed_at_jst)):'—');txt('lastStatus',run?.status??'—');
@@ -184,7 +184,7 @@
     const owner=$('repoOwner').value.trim(),name=$('repoName').value.trim();
     if(!validRepo(owner)||!validRepo(name)){setStatus('オーナー名・リポジトリ名が正しくありません。',true);return;}
     if(!token){setStatus('一時的な読み取り専用GitHub PATを入力してください。',true);return;}
-    session.manualObs=null;session.manualRuns=null;
+    session.manualObs=null;session.manualRuns=null;session.encryptedPassphrase=null;
     void sync(token,{owner,name});
   });
   $('refreshBtn').addEventListener('click',()=>{if(session.token&&session.repo)void sync(session.token,session.repo);});
@@ -204,7 +204,7 @@
       const parts=[session.manualObs?'観測✓':'観測未選択',session.manualRuns?'実行✓':'実行未選択'];
       txt('manualState',parts.join('／'));
       if(session.manualObs&&session.manualRuns){
-        session.epoch++;session.token=null;session.repo=null;session.error=false;$('githubToken').value='';$('autoRefresh').checked=false;
+        session.epoch++;session.token=null;session.repo=null;session.encryptedPassphrase=null;session.error=false;$('githubToken').value='';$('autoRefresh').checked=false;
         session.obs=session.manualObs.rows;session.runs=session.manualRuns;session.duplicates=session.manualObs.duplicates;session.checked=Date.now();session.source='manual';
         controls();render();setStatus('✅ 手動取込：観測 '+session.obs.length+'件 ／ 実行 '+session.runs.length+'件。認証情報は不要です。');
       }
@@ -227,10 +227,65 @@
   };
   setInterval(maybeSync,30_000);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)maybeSync();});
-  window.addEventListener('pagehide',()=>{session.epoch++;session.token=null;session.repo=null;$('githubToken').value='';$('autoRefresh').checked=false;});
+  window.addEventListener('pagehide',()=>{session.epoch++;session.token=null;session.repo=null;session.encryptedPassphrase=null;$('githubToken').value='';$('autoRefresh').checked=false;});
   window.addEventListener('pageshow',()=>{controls();render();});
   if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
     window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{/* PWA shell unavailable, app still works */}));
   }
+  // v2.0.1: Public ciphertext / private passphrase. Never cache decrypted data or secrets.
+  const secureUrl='./secure_snapshot.json';
+  const secureAAD=new TextEncoder().encode('SOL-FX-LAB-SECURE-SNAPSHOT-v1');
+  const decodeB64 = s => Uint8Array.from(atob(s),x=>x.charCodeAt(0));
+  async function decryptSnapshot(envelope,passphrase){
+    if(envelope.version!==1||envelope.kdf!=='PBKDF2-SHA256'||envelope.cipher!=='AES-256-GCM'||envelope.iterations!==600000)
+      throw Error('未対応の暗号化データ形式');
+    const salt=decodeB64(envelope.salt),nonce=decodeB64(envelope.nonce),cipher=decodeB64(envelope.ciphertext);
+    if(salt.length!==16||nonce.length!==12||cipher.length>1_900_000)throw Error('暗号化データサイズまたは形式が不正');
+    const material=await crypto.subtle.importKey('raw',new TextEncoder().encode(passphrase),'PBKDF2',false,['deriveKey']);
+    const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:600000,hash:'SHA-256'},material,{name:'AES-GCM',length:256},false,['decrypt']);
+    let buf;
+    try{buf=await crypto.subtle.decrypt({name:'AES-GCM',iv:nonce,additionalData:secureAAD},key,cipher)}
+    catch(_){throw Error('復号に失敗しました。パスフレーズまたは公開データを確認');}
+    const payload=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(buf));
+    if(!Array.isArray(payload.observations)||!Array.isArray(payload.runs))throw Error('復号データの形式が不正');
+    return payload;
+  }
+  async function encryptedSync(){
+    if(!session.encryptedPassphrase||session.busy)return;
+    const epoch=++session.epoch;
+    session.busy=true;controls();setStatus('⏳ 暗号化された監視データを取得しています…');
+    try{
+      const response=await fetch(secureUrl+'?t='+Date.now(),{cache:'no-store',redirect:'error'});
+      if(!response.ok)throw Error('公開暗号化データの取得エラー HTTP '+response.status);
+      const envelope=await response.json();
+      const payload=await decryptSnapshot(envelope,session.encryptedPassphrase);
+      const obs=validateObs(payload.observations),runs=validateRuns(payload.runs);
+      if(epoch!==session.epoch)return;
+      session.obs=obs.rows;session.runs=runs;session.duplicates=obs.duplicates;
+      session.checked=Date.now();session.error=false;session.source='encrypted';
+      setStatus('✅ 暗号化同期：観測 '+session.obs.length+'件 ／ 実行 '+session.runs.length+'件。復号キーは保存しません。');
+      render();
+    }catch(err){if(epoch!==session.epoch)return;session.error=true;setStatus('❌ 暗号化同期：'+(err instanceof Error?err.message:'失敗')+'。前回の表示を保持します。',true);renderFreshness();}
+    finally{session.busy=false;controls();}
+  }
+  $('encryptedConnectBtn').addEventListener('click',()=>{
+    const pass=$('syncPassphrase').value;$('syncPassphrase').value='';
+    if(pass.length<32){setStatus('❌ パスフレーズは32文字以上で入力してください。',true);return;}
+    session.encryptedPassphrase=pass;session.token=null;session.repo=null;
+    $('autoRefresh').checked=false;void encryptedSync();
+  });
+  $('encryptedDisconnectBtn').addEventListener('click',()=>{
+    session.epoch++;session.encryptedPassphrase=null;session.error=false;
+    $('syncPassphrase').value='';$('encryptedAutoRefresh').checked=false;
+    setStatus('🔒 復号キーを破棄しました。表示済みデータは画面を閉じるまで残ります。');render();
+  });
+  const oldMaybeSync=maybeSync;
+  setInterval(()=>{
+    if(!document.hidden&&$('encryptedAutoRefresh').checked&&session.encryptedPassphrase&&!session.busy&&Date.now()-session.checked>=300_000)void encryptedSync();
+  },30_000);
+  document.addEventListener('visibilitychange',()=>{
+    if(!document.hidden&&session.encryptedPassphrase&&$('encryptedAutoRefresh').checked&&Date.now()-session.checked>=300_000)void encryptedSync();
+  });
+  window.addEventListener('pagehide',()=>{session.encryptedPassphrase=null;$('syncPassphrase').value='';});
   controls();render();
 })();
