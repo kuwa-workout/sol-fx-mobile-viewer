@@ -1,6 +1,6 @@
 /* Cache only our published static shell, NEVER API requests, tokens or observations. */
-const CACHE = 'sol-fx-mobile-shell-v2-0-1';
-const ASSETS = ['./','./index.html','./styles.css','./app.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
+const CACHE = 'sol-fx-mobile-shell-v2-1-0';
+const ASSETS = ['./','./index.html','./styles.css','./health.css','./health.js','./app.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)));});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('sol-fx-mobile-shell-')&&key!==CACHE).map(key=>caches.delete(key)))));});
 self.addEventListener('fetch',event=>{

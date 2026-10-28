@@ -1,0 +1,21 @@
+/* SOL FX LAB v2.1 read-only monitoring panel */
+.health-card{background:#0c1b33;border:1px solid #29435f;border-radius:20px;padding:20px;margin:16px 0 20px;color:#ecf5ff}
+.health-card .card-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.health-card .card-head h2{margin:0;font-size:18px}
+.health-headline{margin:0 0 14px;padding:12px 14px;border-radius:12px;border:1px solid #32506e;font-size:15px;font-weight:750;line-height:1.5}
+.health-headline.ok{background:#0b302c;border-color:#25886f;color:#85ead0}
+.health-headline.warn{background:#332a17;border-color:#8b6732;color:#ffd17d}
+.health-headline.bad{background:#38202a;border-color:#a14b60;color:#ffc3cd}
+.health-headline.partial{background:#142b42;color:#ffd17d}
+.health-headline.unknown{background:#142b42;color:#bfcee0}
+.health-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.health-item{display:flex;flex-direction:column;gap:8px;min-width:0;padding:13px 12px;background:#09182c;border:1px solid #2a4463;border-radius:12px}
+.health-item span{font-size:12px;color:#9eb3cf}
+.health-item strong{font-size:18px;overflow-wrap:anywhere;color:#dcecff}
+.health-item small{font-size:11px;line-height:1.5;color:#9eb3cf}
+.health-item.ok{border-left:3px solid #51cda6}
+.health-item.warn{border-left:3px solid #e6b657}
+.health-item.bad{border-left:3px solid #ef7b8d}
+.health-item.off,.health-item.unknown{border-left:3px solid #546983}
+.health-disclaimer{margin:13px 0 0;color:#9aaec9;font-size:11px;line-height:1.7}
+@media(max-width:380px){.health-grid{grid-template-columns:1fr}.health-card{padding:14px}}

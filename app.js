@@ -1,4 +1,4 @@
-/* SOL FX LAB v2.0 / Mobile read-only viewer.
+/* SOL FX LAB v2.1 / Mobile read-only viewer.
  * Only same-origin static assets and api.github.com are used. API credentials
  * exist in memory, never localStorage, IndexedDB, a cookie or Service Worker.
  * No order, market execution, Web Push, or notification functionality.
@@ -8,7 +8,8 @@
   const $ = id => document.getElementById(id);
   const MAX_FILE = 1_000_000; // GitHub REST contents API small-file mode
   const JST_MS = 9 * 3600_000;
-  const session = { obs:null, runs:null, token:null, repo:null, checked:0, busy:false, epoch:0, duplicates:0, error:false, manualObs:null, manualRuns:null, source:null };
+  const healthEngine = window.SolHealth;
+  const session = { obs:null, runs:null, token:null, repo:null, checked:0, busy:false, epoch:0, duplicates:0, error:false, manualObs:null, manualRuns:null, source:null, publishedAt:NaN };
   const fmtNY = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', weekday:'short', hour:'2-digit', hourCycle:'h23' });
   const clip = (x, d=3) => (typeof x === 'number' && Number.isFinite(x)) ? x.toFixed(d) : '—';
   const txt = (id, value) => { $(id).textContent = value == null ? '—' : String(value); };
@@ -99,6 +100,30 @@
     fresh.className='freshness '+mode;txt('freshnessTitle',title);txt('freshnessText',note);
     txt('alertEligibility',isCurrentlyEligible(latest,now,expected)&&!session.error?'速報条件内（通知機能は未実装）':'速報対象外');
   }
+  function renderHealth(){
+    if(!healthEngine || !$('healthGrid'))return;
+    const now=Date.now();
+    const expected=latestExpectedSlot(now);
+    const currentSlot=Math.floor(now/3600_000)*3600_000-3600_000;
+    const latest=session.obs?.[0], lastRun=session.runs?.[0];
+    const result=healthEngine.classify({
+      now, loadedAt:session.checked, publishedAt:session.publishedAt,
+      runAt:lastRun?parseJst(lastRun.checked_at_jst):NaN,
+      candleAt:latest?parseJst(latest.candle_start_jst):NaN,
+      expectedAt:expected===null?NaN:expected,
+      trading:refSession(currentSlot),source:session.source,syncError:session.error
+    });
+    const grid=$('healthGrid');grid.replaceChildren();
+    for(const m of result.metrics){
+      const card=document.createElement('article');card.className='health-item '+m.level;
+      const name=document.createElement('span');name.textContent=m.label;
+      const value=document.createElement('strong');value.textContent=m.value;
+      const detail=document.createElement('small');detail.textContent=m.note;
+      card.append(name,value,detail);grid.append(card);
+    }
+    const headline=$('healthHeadline');headline.textContent=result.headline;headline.className='health-headline '+result.overall;
+    txt('healthCheckedAt',session.checked?'最終取得 '+jstTime(session.checked)+' JST':'未取得');
+  }
   function recordCard(row,kind){
     const el=document.createElement('article');el.className='history-item';
     const line=document.createElement('div');line.className='history-line';
@@ -138,7 +163,7 @@
     txt('techQuality',latest?latest.quality_status:'—');
     txt('tradeRefs',latest?'参考 ENTRY '+(latest.entry_ref==null?'—':clip(Number(latest.entry_ref)))+' / SL '+(latest.sl==null?'—':clip(Number(latest.sl)))+' / TP '+(latest.tp==null?'—':clip(Number(latest.tp))):'参考 ENTRY — / SL — / TP —');
     txt('loadedAt',session.checked?'最終読込 '+jstTime(session.checked):'最終読込 —');
-    drawHistory();renderFreshness();
+    drawHistory();renderFreshness();renderHealth();
   }
   function controls(){
     $('connectBtn').disabled=session.busy;
@@ -167,7 +192,7 @@
       const {rows,duplicates}=validateObs(parseJsonl(rawObs,'観測履歴'));
       const runs=validateRuns(parseJsonl(rawRuns,'実行履歴'));
       if(epoch!==session.epoch)return;
-      session.obs=rows;session.runs=runs;session.duplicates=duplicates;session.token=token;session.repo=repo;session.checked=Date.now();session.error=false;session.source='github';
+      session.obs=rows;session.runs=runs;session.duplicates=duplicates;session.token=token;session.repo=repo;session.checked=Date.now();session.error=false;session.source='github';session.publishedAt=NaN;
       setStatus('✅ GitHub APIで読込：観測 '+rows.length+'件 ／ 実行 '+runs.length+'件'+(duplicates?' ／ 重複'+duplicates+'件':'')+'。実注文・通知はありません。');
       render();
     }catch(err){
@@ -176,7 +201,7 @@
       const m=err instanceof Error?err.message:'取得できませんでした';
       setStatus('❌ '+m+'。前回取得済みデータがあればそのまま表示します。',true);
       if(/API 401|API 403/.test(m))session.token=null;
-      renderFreshness();
+      renderFreshness();renderHealth();
     }finally{session.busy=false;controls();}
   }
   $('connectBtn').addEventListener('click',()=>{
@@ -205,7 +230,7 @@
       txt('manualState',parts.join('／'));
       if(session.manualObs&&session.manualRuns){
         session.epoch++;session.token=null;session.repo=null;session.encryptedPassphrase=null;session.error=false;$('githubToken').value='';$('autoRefresh').checked=false;
-        session.obs=session.manualObs.rows;session.runs=session.manualRuns;session.duplicates=session.manualObs.duplicates;session.checked=Date.now();session.source='manual';
+        session.obs=session.manualObs.rows;session.runs=session.manualRuns;session.duplicates=session.manualObs.duplicates;session.checked=Date.now();session.source='manual';session.publishedAt=NaN;
         controls();render();setStatus('✅ 手動取込：観測 '+session.obs.length+'件 ／ 実行 '+session.runs.length+'件。認証情報は不要です。');
       }
     }catch(err){setStatus('❌ ファイル取込失敗：'+(err instanceof Error?err.message:'形式不正'),true);}
@@ -222,7 +247,7 @@
   $('tabObs').addEventListener('click',()=>setTab('obs'));
   $('tabRuns').addEventListener('click',()=>setTab('runs'));
   const maybeSync=()=>{
-    renderFreshness();
+    renderFreshness();renderHealth();
     if(!document.hidden&&$('autoRefresh').checked&&session.token&&session.repo&&!session.busy&&Date.now()-session.checked>=300_000)void sync(session.token,session.repo);
   };
   setInterval(maybeSync,30_000);
@@ -263,9 +288,10 @@
       if(epoch!==session.epoch)return;
       session.obs=obs.rows;session.runs=runs;session.duplicates=obs.duplicates;
       session.checked=Date.now();session.error=false;session.source='encrypted';
+      session.publishedAt=typeof payload.generated_at_utc==='string'&&/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\+00:00$/.test(payload.generated_at_utc)?Date.parse(payload.generated_at_utc):NaN;
       setStatus('✅ 暗号化同期：観測 '+session.obs.length+'件 ／ 実行 '+session.runs.length+'件。復号キーは保存しません。');
       render();
-    }catch(err){if(epoch!==session.epoch)return;session.error=true;setStatus('❌ 暗号化同期：'+(err instanceof Error?err.message:'失敗')+'。前回の表示を保持します。',true);renderFreshness();}
+    }catch(err){if(epoch!==session.epoch)return;session.error=true;setStatus('❌ 暗号化同期：'+(err instanceof Error?err.message:'失敗')+'。前回の表示を保持します。',true);renderFreshness();renderHealth();}
     finally{session.busy=false;controls();}
   }
   $('encryptedConnectBtn').addEventListener('click',()=>{
@@ -279,8 +305,8 @@
     $('syncPassphrase').value='';$('encryptedAutoRefresh').checked=false;
     setStatus('🔒 復号キーを破棄しました。表示済みデータは画面を閉じるまで残ります。');render();
   });
-  const oldMaybeSync=maybeSync;
   setInterval(()=>{
+    if(!document.hidden)renderHealth();
     if(!document.hidden&&$('encryptedAutoRefresh').checked&&session.encryptedPassphrase&&!session.busy&&Date.now()-session.checked>=300_000)void encryptedSync();
   },30_000);
   document.addEventListener('visibilitychange',()=>{
