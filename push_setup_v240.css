@@ -1,2 +1,12 @@
 :root{color-scheme:dark;font-family:system-ui,-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background:#091323;color:#eef4ff}
 *{box-sizing:border-box}body{margin:0;padding:1.4rem 1rem}main{max-width:680px;margin:auto}h1{font-size:1.65rem;line-height:1.4}h2{font-size:1.2rem}p{line-height:1.7;color:#cbd9f0}label{display:block;margin:1.5rem 0 .5rem;font-weight:bold}input,textarea{width:100%;border:1px solid #64748b;background:#0f2239;color:#fff;border-radius:12px;padding:13px;font-size:16px}textarea{font-size:12px;overflow-wrap:anywhere}button{display:block;margin:1rem 0;padding:14px 16px;border:0;border-radius:12px;background:#3b82f6;color:#fff;font-weight:bold;font-size:16px;max-width:100%}button:disabled{opacity:.5}.info{padding:12px;border:1px solid #334155;border-radius:12px;background:#14263f}.small{font-size:.85rem}.back{color:#9cc5ff;text-decoration:none}
+/* iPhone PWA: safe area adjustment */
+body {
+  padding-top: max(24px, env(safe-area-inset-top));
+}
+
+.back {
+  display: inline-block;
+  margin-top: 12px;
+  margin-bottom: 16px;
+}
